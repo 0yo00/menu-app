@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>主食分類</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+        .button {
+            display: inline-block;
+            margin: 20px;
+            padding: 10px 20px;
+            font-size: 18px;
+            color: white;
+            background-color: #007BFF;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        #selected-items {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <h1>主食分類</h1>
+    <a href="../food/category_rice.html" class="button">飯類</a>
+    <a href="../food/category_noodles.html" class="button">麵類</a>
+    <a href="../food/category_bread.html" class="button">麵包類</a>
+    <a href="../food/category_soup.html" class="button">湯類</a>
+    <a href="../food/category_fried.html" class="button">炸物類</a>
+    <a href="../food/category_braised.html" class="button">滷製品類</a>
+    <a href="../food/category_western.html" class="button">西式餐品類</a>
+    <a href="../food/category_fast_food.html" class="button">速食餐品類</a>
+    <a href="../food/category_other.html" class="button">其他類</a>
+    <br><br>
+    <!-- 新增隨機挑選按鈕 -->
+    <button class="button" onclick="randomSelect()">隨機挑選一個餐品</button>
+
+    <div id="selected-items">
+        <h3>已挑選的菜品：</h3>
+        <ul id="selected-list"></ul>
+        <button class="button" onclick="clearItems()">刪除已挑選菜品</button>
+        <br><br>
+        <a href="../checkout.html" class="button">結束購買</a>
+    </div>
+
+    <script>
+        const selectedItems = JSON.parse(localStorage.getItem('selectedItems')) || [];
+
+        // 所有餐品資料
+        const allDishes = [
+            '滷肉飯', '雞肉飯', '咖哩飯', '燴飯', '丼飯', '嫩雞飯',
+            '牛肉麵', '炒麵', '湯麵', '麻醬麵', '炸醬麵', '烏龍麵',
+            '鹹麵包', '甜麵包', '可頌', '吐司', '肉鬆麵包', '菠蘿包',
+            '魚湯', '酸辣湯', '排骨湯', '雞湯', '玉米濃湯', '蔬菜湯',
+            '鹹酥雞', '炸豬血糕', '炸杏包菇', '炸雞排', '炸薯條', '炸甜不辣',
+            '滷肉', '滷米血', '滷百頁豆腐', '滷花椰菜', '滷海帶', '滷豆干',  '滷鑫鑫腸',
+            '披薩', '漢堡', '意大利麵', '焗烤米飯',
+            '麥當勞', '肯德基', '摩斯漢堡', '必勝客','漢堡王',
+            '刈包', '水餃', '鍋貼', '鹹水雞', '越南河粉', '包子'
+        ];
+
+        function updateSelectedList() {
+            const list = document.getElementById('selected-list');
+            list.innerHTML = '';
+            selectedItems.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                list.appendChild(li);
+            });
+        }
+
+        function addItem(item) {
+            selectedItems.push(item);
+            localStorage.setItem('selectedItems', JSON.stringify(selectedItems));
+            updateSelectedList();
+        }
+
+        function clearItems() {
+            localStorage.removeItem('selectedItems');
+            selectedItems.length = 0;
+            updateSelectedList();
+        }
+
+        function randomSelect() {
+            const randomDish = allDishes[Math.floor(Math.random() * allDishes.length)];
+            addItem(randomDish);
+            alert(`隨機挑選了一個餐品：${randomDish}`);
+        }
+
+        document.addEventListener('DOMContentLoaded', updateSelectedList);
+    </script>
+</body>
+</html>

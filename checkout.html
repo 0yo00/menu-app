@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>結帳頁面</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <script src="../js/script.js" defer></script>
+</head>
+<body>
+    <h1>感謝您的點餐</h1>
+    <p>以下是您已挑選的菜品：</p>
+    <div id="selectedItems"></div>
+
+    <h2>生成LINE QR Code</h2>
+    <div id="qrcode"></div>
+    <button id="generateQR">生成QR Code</button>
+</body>
+</html>

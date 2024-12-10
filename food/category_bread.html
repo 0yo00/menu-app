@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>麵包類</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        .button {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 1em;
+            color: white;
+            background-color: #007BFF;
+            text-decoration: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .selected-items {
+            margin-top: 30px;
+            font-size: 1.2em;
+        }
+        .delete-btn {
+            background-color: #FF4136;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>麵包類</h1>
+    <!-- 麵包選項按鈕 -->
+    <a href="#" class="button" onclick="addToSelection('鹹麵包')">鹹麵包</a>
+    <a href="#" class="button" onclick="addToSelection('甜麵包')">甜麵包</a>
+    <a href="#" class="button" onclick="addToSelection('可頌')">可頌</a>
+    <a href="#" class="button" onclick="addToSelection('吐司')">吐司</a>
+    <a href="#" class="button" onclick="addToSelection('肉鬆麵包')">肉鬆麵包</a>
+    <a href="#" class="button" onclick="addToSelection('菠蘿包')">菠蘿包</a>
+
+    <!-- 返回主食分類按鈕 -->
+    <a href="main_food.html" class="button">返回上一頁</a>
+
+    <!-- 顯示已挑選的菜品 -->
+    <div class="selected-items" id="selectedItems">
+        已挑選的菜品：
+        <ul id="itemsList"></ul>
+    </div>
+    <!-- 刪除所有挑選菜品按鈕 -->
+    <button class="button delete-btn" onclick="clearSelection()">刪除已挑選菜品</button>
+
+    <!-- 繼續挑選和結束購買按鈕 -->
+    <a href="main_food.html" class="button">繼續挑選</a>
+    <a href="../checkout.html" class="button">結束購買</a>
+
+    <script>
+        // 獲取選擇的菜品
+        const selectedItems = JSON.parse(localStorage.getItem('selectedItems')) || [];
+
+        function addToSelection(item) {
+            selectedItems.push(item);
+            localStorage.setItem('selectedItems', JSON.stringify(selectedItems));
+            displaySelectedItems();
+        }
+
+        function displaySelectedItems() {
+            const itemsList = document.getElementById('itemsList');
+            itemsList.innerHTML = '';
+            selectedItems.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                itemsList.appendChild(li);
+            });
+        }
+
+        function clearSelection() {
+            localStorage.removeItem('selectedItems');
+            displaySelectedItems();
+        }
+
+        // 初始顯示已選擇的菜品
+        displaySelectedItems();
+    </script>
+</body>
+</html>

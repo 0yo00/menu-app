@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>滷製品類</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+        .button {
+            display: inline-block;
+            margin: 20px;
+            padding: 10px 20px;
+            font-size: 18px;
+            color: white;
+            background-color: #007BFF;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        #selected-items {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <h1>滷製品類</h1>
+    <a href="#" class="button" onclick="addItem('滷肉')">滷肉</a>
+    <a href="#" class="button" onclick="addItem('滷米血')">滷米血</a>
+    <a href="#" class="button" onclick="addItem('滷百頁豆腐')">滷百頁豆腐</a>
+    <a href="#" class="button" onclick="addItem('滷花椰菜')">滷花椰菜</a>
+    <a href="#" class="button" onclick="addItem('滷海帶')">滷海帶</a>
+    <a href="#" class="button" onclick="addItem('滷豆干')">滷豆干</a>
+    <a href="#" class="button" onclick="addItem('滷鑫鑫腸')">滷鑫鑫腸</a>
+
+
+    <div id="selected-items">
+        <h3>已挑選的菜品：</h3>
+        <ul id="selected-list"></ul>
+        <button class="button" onclick="clearItems()">刪除已挑選菜品</button>
+        <br><br>
+        <a href="../checkout.html" class="button">結束購買</a>
+        <a href="../food/main_food.html" class="button">返回主食分類</a>
+    </div>
+
+    <script>
+        const selectedItems = JSON.parse(localStorage.getItem('selectedItems')) || [];
+
+        function updateSelectedList() {
+            const list = document.getElementById('selected-list');
+            list.innerHTML = '';
+            selectedItems.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                list.appendChild(li);
+            });
+        }
+
+        function addItem(item) {
+            selectedItems.push(item);
+            localStorage.setItem('selectedItems', JSON.stringify(selectedItems));
+            updateSelectedList();
+        }
+
+        function clearItems() {
+            localStorage.removeItem('selectedItems');
+            selectedItems.length = 0;
+            updateSelectedList();
+        }
+
+        document.addEventListener('DOMContentLoaded', updateSelectedList);
+    </script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>選擇操作</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+        p {
+            font-size: 20px;
+            margin: 15px 0;
+        }
+        .buttons {
+            margin-top: 30px;
+        }
+        .buttons a {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 18px;
+            color: white;
+            background-color: #007BFF;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .buttons a:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顯示用戶選擇的菜名 -->
+    <h1 id="item-name">您選擇的菜名</h1>
+    <p>請選擇接下來的操作：</p>
+
+    <div class="buttons">
+        <!-- 繼續挑選按鈕 -->
+        <a href="#" id="continue">繼續挑選</a>
+        <!-- 結束購買按鈕 -->
+        <a href="checkout.html">結束購買</a>
+    </div>
+
+    <script>
+        // 獲取 URL 的查詢參數
+        const urlParams = new URLSearchParams(window.location.search);
+        const itemName = urlParams.get('item');
+
+        // 顯示用戶選擇的菜名
+        if (itemName) {
+            document.getElementById('item-name').textContent = `您選擇了：${itemName}`;
+            // 保存選擇到 localStorage
+            let selectedItems = JSON.parse(localStorage.getItem('selectedItems')) || [];
+            selectedItems.push(itemName);
+            localStorage.setItem('selectedItems', JSON.stringify(selectedItems));
+        } else {
+            document.getElementById('item-name').textContent = "未選擇任何菜名";
+        }
+
+        // 點擊「繼續挑選」時返回主食分類頁面
+        document.getElementById('continue').addEventListener('click', () => {
+            window.location.href = "food/main_food.html";
+        });
+    </script>
+</body>
+</html>
