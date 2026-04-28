@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人生財務規劃系統</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --sidebar-bg: #1e2d4d;
+            --sidebar-text: #c8d6e5;
+            --sidebar-active: #4f8ef7;
+            --card-bg: #ffffff;
+            --text-primary: #1a2236;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --primary: #4f8ef7;
+            --primary-dark: #3b7de9;
+            --shadow: 0 2px 8px rgba(0,0,0,0.08);
+            --radius: 12px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            width: 220px;
+            background: var(--sidebar-bg);
+            padding: 24px 0;
+            position: fixed;
+            top: 0; left: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            overflow-y: auto;
+        }
+        .sidebar-logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 12px;
+        }
+        .sidebar-logo h1 { font-size: 17px; font-weight: 700; color: #fff; line-height: 1.4; }
+        .sidebar-logo p  { font-size: 11px; color: var(--sidebar-text); margin-top: 4px; }
+        .nav-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 11px 20px;
+            cursor: pointer;
+            color: var(--sidebar-text);
+            font-size: 14px; font-weight: 500;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .nav-item.active { color: #fff; border-left-color: var(--sidebar-active); background: rgba(79,142,247,0.15); }
+        .nav-item .icon { font-size: 17px; width: 20px; text-align: center; }
+
+        /* ── Main ── */
+        .main { margin-left: 220px; padding: 28px 32px; flex: 1; }
+        .page-header { margin-bottom: 24px; }
+        .page-header h2 { font-size: 22px; font-weight: 700; }
+        .page-header p  { color: var(--text-secondary); font-size: 13px; margin-top: 3px; }
+
+        .section { display: none; }
+        .section.active { display: block; }
+
+        /* ── Cards ── */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 22px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            margin-bottom: 18px;
+        }
+        .card-label {
+            font-size: 11px; font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+        .card-value { font-size: 30px; font-weight: 700; color: var(--text-primary); }
+        .card-sub   { font-size: 13px; color: var(--text-secondary); margin-top: 5px; }
+
+        .card-highlight {
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+            border-color: transparent;
+        }
+        .card-highlight .card-label,
+        .card-highlight .card-value,
+        .card-highlight .card-sub { color: #fff; }
+        .card-highlight .card-label { opacity: 0.8; }
+        .card-highlight .card-sub   { opacity: 0.75; }
+
+        /* ── Grids ── */
+        .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 18px; }
+        .grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; margin-bottom: 18px; }
+
+        /* ── Progress bar ── */
+        .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .progress-label  { font-size: 14px; font-weight: 600; }
+        .progress-pct    { font-size: 14px; font-weight: 700; color: var(--primary); }
+        .progress-track  { background: var(--border); border-radius: 99px; height: 12px; overflow: hidden; }
+        .progress-fill   { height: 100%; background: linear-gradient(90deg, #4f8ef7, #22c55e); border-radius: 99px; transition: width 0.5s ease; }
+
+        /* ── Edit rows ── */
+        .edit-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+        .edit-row label { font-size: 13px; color: var(--text-secondary); min-width: 110px; }
+        .edit-row input {
+            flex: 1; padding: 8px 12px;
+            border: 1px solid var(--border); border-radius: 8px;
+            font-size: 14px; background: var(--bg); outline: none;
+        }
+        .edit-row input:focus { border-color: var(--primary); }
+
+        /* ── Buttons ── */
+        .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-success { background: var(--success); color: #fff; }
+        .btn-danger  { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 4px 10px; font-size: 12px; }
+        .btn-danger:hover  { background: var(--danger); color: #fff; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); }
+        .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+        .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+        /* ── Add form ── */
+        .add-form { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+        .add-form input, .add-form select {
+            padding: 9px 13px; border: 1px solid var(--border);
+            border-radius: 8px; font-size: 14px; background: #fff;
+            outline: none; flex: 1; min-width: 110px;
+        }
+        .add-form input:focus, .add-form select:focus { border-color: var(--primary); }
+
+        /* ── Table ── */
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th {
+            text-align: left; padding: 10px 14px;
+            background: var(--bg); color: var(--text-secondary);
+            font-size: 11px; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.5px; border-bottom: 1px solid var(--border);
+        }
+        td { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f8fafc; }
+
+        /* ── Stats row ── */
+        .stats-row { display: flex; gap: 28px; padding: 14px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+        .stat-item { display: flex; flex-direction: column; gap: 3px; }
+        .stat-label { color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+        .stat-val   { font-weight: 700; font-size: 15px; }
+
+        /* ── Filter tabs ── */
+        .filter-tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+        .filter-tab {
+            padding: 5px 14px; border-radius: 99px;
+            border: 1px solid var(--border); background: #fff;
+            color: var(--text-secondary); font-size: 13px; cursor: pointer; transition: all 0.2s;
+        }
+        .filter-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+        /* ── Task items ── */
+        .task-item {
+            display: flex; align-items: flex-start; gap: 12px;
+            padding: 14px 0; border-bottom: 1px solid var(--border);
+        }
+        .task-item:last-child { border-bottom: none; }
+        .task-check {
+            width: 20px; height: 20px; border-radius: 50%;
+            border: 2px solid var(--border); cursor: pointer;
+            flex-shrink: 0; display: flex; align-items: center;
+            justify-content: center; transition: all 0.2s; margin-top: 1px;
+        }
+        .task-check.done { background: var(--success); border-color: var(--success); color: #fff; }
+        .task-check.done::after { content: '✓'; font-size: 11px; }
+        .task-text      { font-size: 14px; flex: 1; }
+        .task-text.done { text-decoration: line-through; color: var(--text-secondary); }
+
+        /* ── Life goal items ── */
+        .life-item { display: flex; align-items: flex-start; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+        .life-item:last-child { border-bottom: none; }
+        .life-icon  { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 21px; flex-shrink: 0; }
+        .life-info  { flex: 1; }
+        .life-title { font-size: 15px; font-weight: 600; }
+        .life-title.done { text-decoration: line-through; color: var(--text-secondary); }
+        .life-desc   { font-size: 13px; color: var(--text-secondary); margin-top: 3px; }
+        .life-amount { font-size: 13px; color: var(--primary); font-weight: 600; margin-top: 3px; }
+
+        .cat-finance   { background: #dbeafe; }
+        .cat-travel    { background: #fce7f3; }
+        .cat-health    { background: #dcfce7; }
+        .cat-education { background: #fef3c7; }
+        .cat-family    { background: #f3e8ff; }
+        .cat-other     { background: #f1f5f9; }
+
+        /* ── Badges ── */
+        .badge { padding: 3px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; display: inline-block; }
+        .badge-pending { background: #fef3c7; color: #d97706; }
+        .badge-done    { background: #dcfce7; color: #16a34a; }
+
+        /* ── Est. info box ── */
+        .info-box {
+            margin-top: 14px; padding: 12px 16px;
+            background: #f0f4f8; border-radius: 8px;
+            font-size: 13px; color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* ── Empty state ── */
+        .empty-state { text-align: center; padding: 40px; color: var(--text-secondary); }
+        .empty-state .eicon { font-size: 38px; margin-bottom: 10px; }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .sidebar { width: 56px; }
+            .sidebar-logo, .nav-item span { display: none; }
+            .main { margin-left: 56px; padding: 16px; }
+            .grid-3, .grid-2 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ══ Sidebar ══ -->
+<nav class="sidebar">
+    <div class="sidebar-logo">
+        <h1>人生財務<br>規劃系統</h1>
+        <p>Financial Life Planner</p>
+    </div>
+    <div class="nav-item active" onclick="showSection('overview', this)">
+        <span class="icon">📊</span><span>財務總覽</span>
+    </div>
+    <div class="nav-item" onclick="showSection('income', this)">
+        <span class="icon">💰</span><span>收入統計</span>
+    </div>
+    <div class="nav-item" onclick="showSection('lifeplan', this)">
+        <span class="icon">🌟</span><span>人生規劃</span>
+    </div>
+    <div class="nav-item" onclick="showSection('tasks', this)">
+        <span class="icon">✅</span><span>任務清單</span>
+    </div>
+</nav>
+
+<!-- ══ Main ══ -->
+<main class="main">
+
+    <!-- ── 1. 財務總覽 ── -->
+    <div id="sec-overview" class="section active">
+        <div class="page-header">
+            <h2>財務總覽</h2>
+            <p>追蹤退休目標進度與整體財務狀況</p>
+        </div>
+
+        <div class="grid-3">
+            <div class="card card-highlight">
+                <div class="card-label">目前總資金</div>
+                <div class="card-value" id="ov-funds">$0</div>
+                <div class="card-sub">可用資產總額</div>
+            </div>
+            <div class="card">
+                <div class="card-label">退休目標</div>
+                <div class="card-value" id="ov-goal">$0</div>
+                <div class="card-sub">設定目標金額</div>
+            </div>
+            <div class="card">
+                <div class="card-label">距離目標</div>
+                <div class="card-value" id="ov-remaining" style="color:var(--warning)">$0</div>
+                <div class="card-sub" id="ov-pct-text">尚未設定</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="progress-header">
+                <span class="progress-label">退休目標達成進度</span>
+                <span class="progress-pct" id="ov-pct">0%</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill" id="ov-bar" style="width:0%"></div>
+            </div>
+            <div class="edit-row">
+                <label>目前總資金</label>
+                <input type="number" id="in-funds" placeholder="輸入金額（元）" min="0">
+                <button class="btn btn-primary" onclick="updateFunds()">更新</button>
+            </div>
+            <div class="edit-row">
+                <label>退休目標金額</label>
+                <input type="number" id="in-goal" placeholder="輸入目標金額（元）" min="0">
+                <button class="btn btn-primary" onclick="updateGoal()">更新</button>
+            </div>
+            <div class="info-box" id="ov-est"></div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-label">今年收入</div>
+                <div class="card-value" id="ov-this-year">$0</div>
+                <div class="card-sub" id="ov-this-year-lbl">2026 年度</div>
+            </div>
+            <div class="card">
+                <div class="card-label">歷年總收入</div>
+                <div class="card-value" id="ov-total-income">$0</div>
+                <div class="card-sub">所有年度加總</div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-label">任務完成率</div>
+                <div class="card-value" id="ov-task-rate">0%</div>
+                <div class="card-sub" id="ov-task-detail">0 / 0 項已完成</div>
+            </div>
+            <div class="card">
+                <div class="card-label">人生規劃完成率</div>
+                <div class="card-value" id="ov-life-rate">0%</div>
+                <div class="card-sub" id="ov-life-detail">0 / 0 項已完成</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 2. 收入統計 ── -->
+    <div id="sec-income" class="section">
+        <div class="page-header">
+            <h2>每年收入統計</h2>
+            <p>記錄並分析每年收入變化趨勢</p>
+        </div>
+
+        <div class="card">
+            <div class="card-label" style="font-size:14px;color:var(--text-primary);text-transform:none;letter-spacing:0;margin-bottom:14px;font-weight:600">新增年度收入</div>
+            <div class="add-form">
+                <input type="number" id="ic-year"   placeholder="年份（例：2025）" min="2000" max="2100" style="max-width:160px">
+                <input type="number" id="ic-amount" placeholder="收入金額（元）"  min="0">
+                <input type="text"   id="ic-note"   placeholder="備註（選填）">
+                <button class="btn btn-primary" onclick="addIncome()">新增</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <canvas id="income-chart" height="90"></canvas>
+        </div>
+
+        <div class="card">
+            <div class="stats-row">
+                <div class="stat-item"><span class="stat-label">歷年總收入</span><span class="stat-val" id="ic-total">$0</span></div>
+                <div class="stat-item"><span class="stat-label">年均收入</span>  <span class="stat-val" id="ic-avg">$0</span></div>
+                <div class="stat-item"><span class="stat-label">最高年收入</span><span class="stat-val" id="ic-max">$0</span></div>
+                <div class="stat-item"><span class="stat-label">今年收入</span>  <span class="stat-val" id="ic-this">$0</span></div>
+            </div>
+            <div class="table-wrap" style="margin-top:14px">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>年份</th><th>收入金額</th><th>備註</th><th>成長率</th><th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ic-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 3. 人生規劃 ── -->
+    <div id="sec-lifeplan" class="section">
+        <div class="page-header">
+            <h2>人生規劃</h2>
+            <p>設定並追蹤你的人生目標與重要里程碑</p>
+        </div>
+
+        <div class="card">
+            <div class="card-label" style="font-size:14px;color:var(--text-primary);text-transform:none;letter-spacing:0;margin-bottom:14px;font-weight:600">新增人生目標</div>
+            <div class="add-form">
+                <input type="text"   id="lp-title"  placeholder="目標名稱"          style="min-width:180px">
+                <input type="text"   id="lp-desc"   placeholder="描述（選填）">
+                <input type="number" id="lp-amount" placeholder="目標金額（選填）"  min="0" style="max-width:180px">
+                <select id="lp-cat">
+                    <option value="finance">💰 財務</option>
+                    <option value="travel">✈️ 旅行</option>
+                    <option value="health">💪 健康</option>
+                    <option value="education">📚 教育</option>
+                    <option value="family">👨‍👩‍👧 家庭</option>
+                    <option value="other">⭐ 其他</option>
+                </select>
+                <button class="btn btn-primary" onclick="addLifeGoal()">新增</button>
+            </div>
+        </div>
+
+        <div class="filter-tabs">
+            <div class="filter-tab active" onclick="filterLife('all',this)">全部</div>
+            <div class="filter-tab" onclick="filterLife('pending',this)">待完成</div>
+            <div class="filter-tab" onclick="filterLife('done',this)">已完成</div>
+        </div>
+
+        <div class="card">
+            <div id="lp-list">
+                <div class="empty-state"><div class="eicon">🌟</div><p>還沒有人生目標，新增第一個吧！</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 4. 任務清單 ── -->
+    <div id="sec-tasks" class="section">
+        <div class="page-header">
+            <h2>任務清單</h2>
+            <p>管理今年與歷年待辦任務</p>
+        </div>
+
+        <div class="card">
+            <div class="card-label" style="font-size:14px;color:var(--text-primary);text-transform:none;letter-spacing:0;margin-bottom:14px;font-weight:600">新增任務</div>
+            <div class="add-form">
+                <input type="text"   id="tk-title"    placeholder="任務名稱"       style="min-width:180px">
+                <input type="number" id="tk-year"     placeholder="年份"           min="2020" max="2100" style="max-width:110px">
+                <select id="tk-priority">
+                    <option value="high">🔴 高優先</option>
+                    <option value="medium" selected>🟡 中優先</option>
+                    <option value="low">🟢 低優先</option>
+                </select>
+                <input type="text" id="tk-note" placeholder="備註（選填）">
+                <button class="btn btn-primary" onclick="addTask()">新增</button>
+            </div>
+        </div>
+
+        <div id="tk-year-tabs" class="filter-tabs"></div>
+
+        <div class="filter-tabs" id="tk-status-tabs">
+            <div class="filter-tab active" onclick="filterTaskStatus('all',this)">全部</div>
+            <div class="filter-tab" onclick="filterTaskStatus('pending',this)">待完成</div>
+            <div class="filter-tab" onclick="filterTaskStatus('done',this)">已完成</div>
+        </div>
+
+        <div class="card">
+            <div id="tk-list">
+                <div class="empty-state"><div class="eicon">✅</div><p>還沒有任務，新增第一個吧！</p></div>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<script>
+// ════════════════════════════════════════════
+//  Data
+// ════════════════════════════════════════════
+let D = { funds: 0, goal: 0, income: [], lifeGoals: [], tasks: [] };
+
+function load() {
+    try { const s = localStorage.getItem('lifePlanner'); if (s) D = JSON.parse(s); } catch(e) {}
+}
+function save() { localStorage.setItem('lifePlanner', JSON.stringify(D)); }
+
+function fmt(n) {
+    n = Number(n) || 0;
+    if (n >= 1e8) return '$' + (n/1e8).toFixed(2) + ' 億';
+    if (n >= 1e4) return '$' + (n/1e4).toFixed(1) + ' 萬';
+    return '$' + n.toLocaleString();
+}
+function fmtFull(n) { return '$' + (Number(n)||0).toLocaleString(); }
+
+// ════════════════════════════════════════════
+//  Navigation
+// ════════════════════════════════════════════
+function showSection(name, el) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('sec-' + name).classList.add('active');
+    el.classList.add('active');
+    if (name === 'overview') renderOverview();
+    if (name === 'income')  { renderIncomeTable(); renderIncomeChart(); }
+    if (name === 'lifeplan') renderLife();
+    if (name === 'tasks')   { renderYearTabs(); renderTasks(); }
+}
+
+// ════════════════════════════════════════════
+//  1. 財務總覽
+// ════════════════════════════════════════════
+function updateFunds() {
+    const v = parseFloat(document.getElementById('in-funds').value);
+    if (isNaN(v) || v < 0) return alert('請輸入有效金額');
+    D.funds = v; save(); renderOverview();
+    document.getElementById('in-funds').value = '';
+}
+function updateGoal() {
+    const v = parseFloat(document.getElementById('in-goal').value);
+    if (isNaN(v) || v <= 0) return alert('請輸入有效目標金額');
+    D.goal = v; save(); renderOverview();
+    document.getElementById('in-goal').value = '';
+}
+
+function renderOverview() {
+    const { funds, goal } = D;
+    const remaining = Math.max(0, goal - funds);
+    const pct = goal > 0 ? Math.min(100, funds / goal * 100) : 0;
+
+    document.getElementById('ov-funds').textContent     = fmtFull(funds);
+    document.getElementById('ov-goal').textContent      = fmtFull(goal);
+    document.getElementById('ov-remaining').textContent = fmtFull(remaining);
+    document.getElementById('ov-pct').textContent       = pct.toFixed(1) + '%';
+    document.getElementById('ov-bar').style.width       = pct + '%';
+    document.getElementById('ov-pct-text').textContent  =
+        pct >= 100 ? '🎉 已達成退休目標！' : `已完成 ${pct.toFixed(1)}%，還差 ${fmtFull(remaining)}`;
+
+    // Estimate
+    const avg = D.income.length ? D.income.reduce((s,i)=>s+i.amount,0)/D.income.length : 0;
+    const est = document.getElementById('ov-est');
+    if (pct >= 100) {
+        est.innerHTML = `🎉 <strong>恭喜！您已達成退休目標！</strong>`;
+    } else if (avg > 0 && remaining > 0) {
+        const yrs = Math.ceil(remaining / avg);
+        est.innerHTML = `📅 以年均收入 <strong>${fmtFull(avg)}</strong> 計算，約需 <strong>${yrs} 年</strong>（預計 <strong>${new Date().getFullYear()+yrs} 年</strong>）達成退休目標`;
+    } else {
+        est.innerHTML = `💡 請先在「收入統計」頁面記錄收入，即可自動估算達成年份`;
+    }
+
+    // Income summary
+    const thisYear = new Date().getFullYear();
+    const tyIncome = D.income.find(i => i.year === thisYear);
+    const total    = D.income.reduce((s,i)=>s+i.amount,0);
+    document.getElementById('ov-this-year').textContent      = tyIncome ? fmtFull(tyIncome.amount) : '$0';
+    document.getElementById('ov-this-year-lbl').textContent  = thisYear + ' 年度';
+    document.getElementById('ov-total-income').textContent   = fmtFull(total);
+
+    // Task stats
+    const tt = D.tasks.length, td = D.tasks.filter(t=>t.done).length;
+    const tr = tt ? Math.round(td/tt*100) : 0;
+    document.getElementById('ov-task-rate').textContent   = tr + '%';
+    document.getElementById('ov-task-detail').textContent = `${td} / ${tt} 項已完成`;
+
+    // Life stats
+    const lt = D.lifeGoals.length, ld = D.lifeGoals.filter(g=>g.done).length;
+    const lr = lt ? Math.round(ld/lt*100) : 0;
+    document.getElementById('ov-life-rate').textContent   = lr + '%';
+    document.getElementById('ov-life-detail').textContent = `${ld} / ${lt} 項已完成`;
+}
+
+// ════════════════════════════════════════════
+//  2. 收入統計
+// ════════════════════════════════════════════
+let incChart = null;
+
+function addIncome() {
+    const year   = parseInt(document.getElementById('ic-year').value);
+    const amount = parseFloat(document.getElementById('ic-amount').value);
+    const note   = document.getElementById('ic-note').value.trim();
+    if (isNaN(year)   || year < 2000) return alert('請輸入有效年份');
+    if (isNaN(amount) || amount < 0)  return alert('請輸入有效金額');
+
+    const idx = D.income.findIndex(i => i.year === year);
+    if (idx >= 0) {
+        if (!confirm(`${year} 年已有記錄，確定覆蓋嗎？`)) return;
+        D.income[idx] = { year, amount, note };
+    } else {
+        D.income.push({ year, amount, note });
+    }
+    D.income.sort((a,b) => a.year - b.year);
+    save();
+    document.getElementById('ic-year').value = '';
+    document.getElementById('ic-amount').value = '';
+    document.getElementById('ic-note').value = '';
+    renderIncomeTable();
+    renderIncomeChart();
+}
+
+function deleteIncome(year) {
+    if (!confirm(`確定刪除 ${year} 年的收入記錄嗎？`)) return;
+    D.income = D.income.filter(i => i.year !== year);
+    save(); renderIncomeTable(); renderIncomeChart();
+}
+
+function renderIncomeTable() {
+    const tbody = document.getElementById('ic-tbody');
+    if (!D.income.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);padding:24px">尚無收入記錄</td></tr>';
+        updateIncomeStats(); return;
+    }
+    const sorted = [...D.income].sort((a,b)=>b.year-a.year);
+    tbody.innerHTML = sorted.map(item => {
+        const prev = D.income.find(i => i.year === item.year - 1);
+        let growth = '<span style="color:var(--text-secondary)">-</span>';
+        if (prev) {
+            const r = ((item.amount - prev.amount) / prev.amount * 100).toFixed(1);
+            const c = r >= 0 ? 'var(--success)' : 'var(--danger)';
+            growth = `<span style="color:${c};font-weight:600">${r>=0?'+':''}${r}%</span>`;
+        }
+        return `<tr>
+            <td><strong>${item.year}</strong></td>
+            <td>${fmtFull(item.amount)}</td>
+            <td style="color:var(--text-secondary)">${item.note||'-'}</td>
+            <td>${growth}</td>
+            <td><button class="btn btn-danger" onclick="deleteIncome(${item.year})">刪除</button></td>
+        </tr>`;
+    }).join('');
+    updateIncomeStats();
+}
+
+function updateIncomeStats() {
+    const list = D.income;
+    const total   = list.reduce((s,i)=>s+i.amount,0);
+    const avg     = list.length ? total/list.length : 0;
+    const max     = list.length ? Math.max(...list.map(i=>i.amount)) : 0;
+    const thisYr  = list.find(i=>i.year===new Date().getFullYear());
+    document.getElementById('ic-total').textContent = fmtFull(total);
+    document.getElementById('ic-avg').textContent   = fmtFull(Math.round(avg));
+    document.getElementById('ic-max').textContent   = fmtFull(max);
+    document.getElementById('ic-this').textContent  = thisYr ? fmtFull(thisYr.amount) : '$0';
+}
+
+function renderIncomeChart() {
+    const ctx    = document.getElementById('income-chart').getContext('2d');
+    const sorted = [...D.income].sort((a,b)=>a.year-b.year);
+    if (incChart) incChart.destroy();
+    incChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sorted.map(i=>i.year+'年'),
+            datasets: [{
+                label: '年收入',
+                data: sorted.map(i=>i.amount),
+                backgroundColor: sorted.map(i =>
+                    i.year === new Date().getFullYear()
+                        ? 'rgba(79,142,247,0.9)'
+                        : 'rgba(79,142,247,0.5)'
+                ),
+                borderColor: 'rgba(79,142,247,1)',
+                borderWidth: 1,
+                borderRadius: 6,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                title: {
+                    display: true,
+                    text: '每年收入統計',
+                    font: { size: 15, weight: 'bold' },
+                    color: '#1a2236',
+                    padding: { bottom: 16 }
+                },
+                tooltip: { callbacks: { label: c => fmtFull(c.raw) } }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { callback: v => fmt(v) } }
+            }
+        }
+    });
+}
+
+// ════════════════════════════════════════════
+//  3. 人生規劃
+// ════════════════════════════════════════════
+let lifeFilter = 'all';
+const CATS = {
+    finance:   { icon:'💰', label:'財務',   cls:'cat-finance' },
+    travel:    { icon:'✈️', label:'旅行',   cls:'cat-travel' },
+    health:    { icon:'💪', label:'健康',   cls:'cat-health' },
+    education: { icon:'📚', label:'教育',   cls:'cat-education' },
+    family:    { icon:'👨‍👩‍👧', label:'家庭', cls:'cat-family' },
+    other:     { icon:'⭐', label:'其他',   cls:'cat-other' },
+};
+
+function addLifeGoal() {
+    const title = document.getElementById('lp-title').value.trim();
+    if (!title) return alert('請輸入目標名稱');
+    D.lifeGoals.push({
+        id: Date.now(),
+        title,
+        desc:     document.getElementById('lp-desc').value.trim(),
+        amount:   parseFloat(document.getElementById('lp-amount').value) || 0,
+        category: document.getElementById('lp-cat').value,
+        done: false,
+        createdAt: new Date().toISOString().slice(0,10)
+    });
+    save();
+    document.getElementById('lp-title').value = '';
+    document.getElementById('lp-desc').value  = '';
+    document.getElementById('lp-amount').value = '';
+    renderLife();
+}
+
+function toggleLife(id) {
+    const g = D.lifeGoals.find(g=>g.id===id);
+    if (g) g.done = !g.done;
+    save(); renderLife(); renderOverview();
+}
+function deleteLife(id) {
+    if (!confirm('確定刪除這個目標嗎？')) return;
+    D.lifeGoals = D.lifeGoals.filter(g=>g.id!==id);
+    save(); renderLife(); renderOverview();
+}
+
+function filterLife(f, el) {
+    lifeFilter = f;
+    document.querySelectorAll('#sec-lifeplan .filter-tab').forEach(t=>t.classList.remove('active'));
+    el.classList.add('active');
+    renderLife();
+}
+
+function renderLife() {
+    const el = document.getElementById('lp-list');
+    let list = D.lifeGoals;
+    if (lifeFilter === 'pending') list = list.filter(g=>!g.done);
+    if (lifeFilter === 'done')    list = list.filter(g=>g.done);
+
+    if (!list.length) {
+        el.innerHTML = `<div class="empty-state"><div class="eicon">🌟</div><p>${lifeFilter==='all'?'還沒有人生目標，新增第一個吧！':'沒有符合條件的目標'}</p></div>`;
+        return;
+    }
+    el.innerHTML = list.map(g => {
+        const cat = CATS[g.category] || CATS.other;
+        return `<div class="life-item">
+            <div class="life-icon ${cat.cls}">${cat.icon}</div>
+            <div class="life-info">
+                <div class="life-title ${g.done?'done':''}">${g.title}</div>
+                ${g.desc   ? `<div class="life-desc">${g.desc}</div>` : ''}
+                ${g.amount ? `<div class="life-amount">目標金額：${fmtFull(g.amount)}</div>` : ''}
+                <div style="margin-top:6px;display:flex;gap:8px;align-items:center">
+                    <span class="badge ${g.done?'badge-done':'badge-pending'}">${g.done?'✓ 已完成':'待完成'}</span>
+                    <span style="font-size:11px;color:var(--text-secondary)">${cat.label} · ${g.createdAt}</span>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-shrink:0">
+                <button class="btn btn-sm ${g.done?'btn-outline':'btn-success'}" onclick="toggleLife(${g.id})">${g.done?'取消完成':'標記完成'}</button>
+                <button class="btn btn-danger" onclick="deleteLife(${g.id})">刪除</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ════════════════════════════════════════════
+//  4. 任務清單
+// ════════════════════════════════════════════
+let tkYear   = 'all';
+let tkStatus = 'all';
+const PRI = {
+    high:   { icon:'🔴', label:'高優先', color:'#ef4444' },
+    medium: { icon:'🟡', label:'中優先', color:'#f59e0b' },
+    low:    { icon:'🟢', label:'低優先', color:'#22c55e' },
+};
+
+function addTask() {
+    const title = document.getElementById('tk-title').value.trim();
+    if (!title) return alert('請輸入任務名稱');
+    D.tasks.push({
+        id:       Date.now(),
+        title,
+        year:     parseInt(document.getElementById('tk-year').value) || new Date().getFullYear(),
+        priority: document.getElementById('tk-priority').value,
+        note:     document.getElementById('tk-note').value.trim(),
+        done:     false,
+        createdAt: new Date().toISOString().slice(0,10)
+    });
+    save();
+    document.getElementById('tk-title').value = '';
+    document.getElementById('tk-note').value  = '';
+    renderYearTabs(); renderTasks(); renderOverview();
+}
+
+function toggleTask(id) {
+    const t = D.tasks.find(t=>t.id===id);
+    if (t) t.done = !t.done;
+    save(); renderTasks(); renderOverview();
+}
+function deleteTask(id) {
+    if (!confirm('確定刪除這個任務嗎？')) return;
+    D.tasks = D.tasks.filter(t=>t.id!==id);
+    save(); renderYearTabs(); renderTasks(); renderOverview();
+}
+
+function filterTaskYear(y, el) {
+    tkYear = y;
+    document.querySelectorAll('#tk-year-tabs .filter-tab').forEach(t=>t.classList.remove('active'));
+    el.classList.add('active');
+    renderTasks();
+}
+function filterTaskStatus(s, el) {
+    tkStatus = s;
+    document.querySelectorAll('#tk-status-tabs .filter-tab').forEach(t=>t.classList.remove('active'));
+    el.classList.add('active');
+    renderTasks();
+}
+
+function renderYearTabs() {
+    const years = [...new Set(D.tasks.map(t=>t.year))].sort((a,b)=>b-a);
+    const el = document.getElementById('tk-year-tabs');
+    el.innerHTML =
+        `<div class="filter-tab ${tkYear==='all'?'active':''}" onclick="filterTaskYear('all',this)">全部</div>` +
+        years.map(y =>
+            `<div class="filter-tab ${tkYear==y?'active':''}" onclick="filterTaskYear(${y},this)">${y} 年</div>`
+        ).join('');
+}
+
+function renderTasks() {
+    const el = document.getElementById('tk-list');
+    let list = D.tasks;
+    if (tkYear !== 'all')    list = list.filter(t => t.year == tkYear);
+    if (tkStatus === 'pending') list = list.filter(t => !t.done);
+    if (tkStatus === 'done')    list = list.filter(t => t.done);
+
+    const pOrd = { high:0, medium:1, low:2 };
+    list = [...list].sort((a,b) => {
+        if (a.done !== b.done) return a.done ? 1 : -1;
+        return pOrd[a.priority] - pOrd[b.priority];
+    });
+
+    if (!list.length) {
+        el.innerHTML = `<div class="empty-state"><div class="eicon">✅</div><p>${!D.tasks.length?'還沒有任務，新增第一個吧！':'沒有符合條件的任務'}</p></div>`;
+        return;
+    }
+    el.innerHTML = list.map(t => {
+        const p = PRI[t.priority] || PRI.medium;
+        return `<div class="task-item">
+            <div class="task-check ${t.done?'done':''}" onclick="toggleTask(${t.id})"></div>
+            <div style="flex:1">
+                <div class="task-text ${t.done?'done':''}">${t.title}</div>
+                ${t.note ? `<div style="font-size:12px;color:var(--text-secondary);margin-top:2px">${t.note}</div>` : ''}
+                <div style="margin-top:5px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                    <span style="font-size:12px;color:${p.color};font-weight:600">${p.icon} ${p.label}</span>
+                    <span style="font-size:11px;color:var(--text-secondary)">${t.year} 年 · ${t.createdAt}</span>
+                    <span class="badge ${t.done?'badge-done':'badge-pending'}">${t.done?'✓ 已完成':'待完成'}</span>
+                </div>
+            </div>
+            <button class="btn btn-danger" style="flex-shrink:0" onclick="deleteTask(${t.id})">刪除</button>
+        </div>`;
+    }).join('');
+}
+
+// ════════════════════════════════════════════
+//  Init
+// ════════════════════════════════════════════
+load();
+renderOverview();
+renderIncomeTable();
+renderLife();
+renderYearTabs();
+renderTasks();
+document.getElementById('tk-year').value   = new Date().getFullYear();
+document.getElementById('ic-year').value   = new Date().getFullYear();
+</script>
+</body>
+</html>
