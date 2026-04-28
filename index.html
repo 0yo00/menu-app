@@ -339,7 +339,16 @@
         <div class="card">
             <div class="card-label" style="font-size:14px;color:var(--text-primary);text-transform:none;letter-spacing:0;margin-bottom:14px;font-weight:600">新增年度收入</div>
             <div class="add-form">
-                <input type="number" id="ic-year"   placeholder="年份（例：2025）" min="2000" max="2100" style="max-width:160px">
+                <input type="number" id="ic-year"   placeholder="年份（例：2025）" min="2000" max="2100" style="max-width:130px">
+                <select id="ic-month" style="max-width:110px">
+                    <option value="0">全年總計</option>
+                    <option value="1">1 月</option><option value="2">2 月</option>
+                    <option value="3">3 月</option><option value="4">4 月</option>
+                    <option value="5">5 月</option><option value="6">6 月</option>
+                    <option value="7">7 月</option><option value="8">8 月</option>
+                    <option value="9">9 月</option><option value="10">10 月</option>
+                    <option value="11">11 月</option><option value="12">12 月</option>
+                </select>
                 <input type="number" id="ic-amount" placeholder="收入金額（元）"  min="0">
                 <input type="text"   id="ic-note"   placeholder="備註（選填）">
                 <button class="btn btn-primary" onclick="addIncome()">新增</button>
@@ -361,7 +370,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>年份</th><th>收入金額</th><th>備註</th><th>成長率</th><th>操作</th>
+                            <th>年份</th><th>月份</th><th>收入金額</th><th>備註</th><th>操作</th>
                         </tr>
                     </thead>
                     <tbody id="ic-tbody"></tbody>
@@ -464,7 +473,6 @@ function fmt(n) {
     if (n >= 1e4) return '$' + (n/1e4).toFixed(1) + ' 萬';
     return '$' + n.toLocaleString();
 }
-function fmtFull(n) { return '$' + (Number(n)||0).toLocaleString(); }
 
 // ════════════════════════════════════════════
 //  Navigation
@@ -501,33 +509,34 @@ function renderOverview() {
     const remaining = Math.max(0, goal - funds);
     const pct = goal > 0 ? Math.min(100, funds / goal * 100) : 0;
 
-    document.getElementById('ov-funds').textContent     = fmtFull(funds);
-    document.getElementById('ov-goal').textContent      = fmtFull(goal);
-    document.getElementById('ov-remaining').textContent = fmtFull(remaining);
+    document.getElementById('ov-funds').textContent     = fmt(funds);
+    document.getElementById('ov-goal').textContent      = fmt(goal);
+    document.getElementById('ov-remaining').textContent = fmt(remaining);
     document.getElementById('ov-pct').textContent       = pct.toFixed(1) + '%';
     document.getElementById('ov-bar').style.width       = pct + '%';
     document.getElementById('ov-pct-text').textContent  =
-        pct >= 100 ? '🎉 已達成退休目標！' : `已完成 ${pct.toFixed(1)}%，還差 ${fmtFull(remaining)}`;
+        pct >= 100 ? '🎉 已達成退休目標！' : `已完成 ${pct.toFixed(1)}%，還差 ${fmt(remaining)}`;
 
-    // Estimate
-    const avg = D.income.length ? D.income.reduce((s,i)=>s+i.amount,0)/D.income.length : 0;
+    // Estimate（以年度加總計算）
+    const yearly  = getYearlyTotals();
+    const avg     = yearly.length ? yearly.reduce((s,i)=>s+i.amount,0)/yearly.length : 0;
     const est = document.getElementById('ov-est');
     if (pct >= 100) {
         est.innerHTML = `🎉 <strong>恭喜！您已達成退休目標！</strong>`;
     } else if (avg > 0 && remaining > 0) {
         const yrs = Math.ceil(remaining / avg);
-        est.innerHTML = `📅 以年均收入 <strong>${fmtFull(avg)}</strong> 計算，約需 <strong>${yrs} 年</strong>（預計 <strong>${new Date().getFullYear()+yrs} 年</strong>）達成退休目標`;
+        est.innerHTML = `📅 以年均收入 <strong>${fmt(avg)}</strong> 計算，約需 <strong>${yrs} 年</strong>（預計 <strong>${new Date().getFullYear()+yrs} 年</strong>）達成退休目標`;
     } else {
         est.innerHTML = `💡 請先在「收入統計」頁面記錄收入，即可自動估算達成年份`;
     }
 
     // Income summary
     const thisYear = new Date().getFullYear();
-    const tyIncome = D.income.find(i => i.year === thisYear);
-    const total    = D.income.reduce((s,i)=>s+i.amount,0);
-    document.getElementById('ov-this-year').textContent      = tyIncome ? fmtFull(tyIncome.amount) : '$0';
+    const tyIncome = yearly.find(i => i.year === thisYear);
+    const total    = yearly.reduce((s,i)=>s+i.amount,0);
+    document.getElementById('ov-this-year').textContent      = tyIncome ? fmt(tyIncome.amount) : '$0';
     document.getElementById('ov-this-year-lbl').textContent  = thisYear + ' 年度';
-    document.getElementById('ov-total-income').textContent   = fmtFull(total);
+    document.getElementById('ov-total-income').textContent   = fmt(total);
 
     // Task stats
     const tt = D.tasks.length, td = D.tasks.filter(t=>t.done).length;
@@ -549,31 +558,44 @@ let incChart = null;
 
 function addIncome() {
     const year   = parseInt(document.getElementById('ic-year').value);
+    const month  = parseInt(document.getElementById('ic-month').value);
     const amount = parseFloat(document.getElementById('ic-amount').value);
     const note   = document.getElementById('ic-note').value.trim();
     if (isNaN(year)   || year < 2000) return alert('請輸入有效年份');
     if (isNaN(amount) || amount < 0)  return alert('請輸入有效金額');
 
-    const idx = D.income.findIndex(i => i.year === year);
-    if (idx >= 0) {
-        if (!confirm(`${year} 年已有記錄，確定覆蓋嗎？`)) return;
-        D.income[idx] = { year, amount, note };
+    const dup = D.income.find(i => i.year === year && i.month === month);
+    if (dup) {
+        const lbl = month === 0 ? `${year}年全年` : `${year}年${month}月`;
+        if (!confirm(`${lbl} 已有記錄，確定覆蓋嗎？`)) return;
+        dup.amount = amount; dup.note = note;
     } else {
-        D.income.push({ year, amount, note });
+        D.income.push({ id: Date.now(), year, month, amount, note });
     }
-    D.income.sort((a,b) => a.year - b.year);
+    D.income.sort((a,b) => a.year !== b.year ? a.year-b.year : a.month-b.month);
     save();
-    document.getElementById('ic-year').value = '';
     document.getElementById('ic-amount').value = '';
-    document.getElementById('ic-note').value = '';
+    document.getElementById('ic-note').value   = '';
     renderIncomeTable();
     renderIncomeChart();
 }
 
-function deleteIncome(year) {
-    if (!confirm(`確定刪除 ${year} 年的收入記錄嗎？`)) return;
-    D.income = D.income.filter(i => i.year !== year);
+function deleteIncome(id) {
+    const rec = D.income.find(i => i.id === id);
+    if (!rec) return;
+    const lbl = rec.month === 0 ? `${rec.year}年全年` : `${rec.year}年${rec.month}月`;
+    if (!confirm(`確定刪除「${lbl}」的收入記錄嗎？`)) return;
+    D.income = D.income.filter(i => i.id !== id);
     save(); renderIncomeTable(); renderIncomeChart();
+}
+
+// 將所有收入記錄依年份加總
+function getYearlyTotals() {
+    const map = {};
+    D.income.forEach(i => { map[i.year] = (map[i.year]||0) + i.amount; });
+    return Object.entries(map)
+        .map(([y,a]) => ({ year: parseInt(y), amount: a }))
+        .sort((a,b) => a.year - b.year);
 }
 
 function renderIncomeTable() {
@@ -582,50 +604,44 @@ function renderIncomeTable() {
         tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);padding:24px">尚無收入記錄</td></tr>';
         updateIncomeStats(); return;
     }
-    const sorted = [...D.income].sort((a,b)=>b.year-a.year);
+    const sorted = [...D.income].sort((a,b) => b.year !== a.year ? b.year-a.year : b.month-a.month);
     tbody.innerHTML = sorted.map(item => {
-        const prev = D.income.find(i => i.year === item.year - 1);
-        let growth = '<span style="color:var(--text-secondary)">-</span>';
-        if (prev) {
-            const r = ((item.amount - prev.amount) / prev.amount * 100).toFixed(1);
-            const c = r >= 0 ? 'var(--success)' : 'var(--danger)';
-            growth = `<span style="color:${c};font-weight:600">${r>=0?'+':''}${r}%</span>`;
-        }
+        const mLbl = item.month === 0 ? '<span style="color:var(--primary);font-weight:600">全年</span>' : item.month + ' 月';
         return `<tr>
             <td><strong>${item.year}</strong></td>
-            <td>${fmtFull(item.amount)}</td>
+            <td>${mLbl}</td>
+            <td>${fmt(item.amount)}</td>
             <td style="color:var(--text-secondary)">${item.note||'-'}</td>
-            <td>${growth}</td>
-            <td><button class="btn btn-danger" onclick="deleteIncome(${item.year})">刪除</button></td>
+            <td><button class="btn btn-danger" onclick="deleteIncome(${item.id})">刪除</button></td>
         </tr>`;
     }).join('');
     updateIncomeStats();
 }
 
 function updateIncomeStats() {
-    const list = D.income;
-    const total   = list.reduce((s,i)=>s+i.amount,0);
-    const avg     = list.length ? total/list.length : 0;
-    const max     = list.length ? Math.max(...list.map(i=>i.amount)) : 0;
-    const thisYr  = list.find(i=>i.year===new Date().getFullYear());
-    document.getElementById('ic-total').textContent = fmtFull(total);
-    document.getElementById('ic-avg').textContent   = fmtFull(Math.round(avg));
-    document.getElementById('ic-max').textContent   = fmtFull(max);
-    document.getElementById('ic-this').textContent  = thisYr ? fmtFull(thisYr.amount) : '$0';
+    const yearly = getYearlyTotals();
+    const total  = yearly.reduce((s,i)=>s+i.amount,0);
+    const avg    = yearly.length ? total/yearly.length : 0;
+    const max    = yearly.length ? Math.max(...yearly.map(i=>i.amount)) : 0;
+    const thisYr = yearly.find(i=>i.year===new Date().getFullYear());
+    document.getElementById('ic-total').textContent = fmt(total);
+    document.getElementById('ic-avg').textContent   = fmt(Math.round(avg));
+    document.getElementById('ic-max').textContent   = fmt(max);
+    document.getElementById('ic-this').textContent  = thisYr ? fmt(thisYr.amount) : '$0';
 }
 
 function renderIncomeChart() {
     const ctx    = document.getElementById('income-chart').getContext('2d');
-    const sorted = [...D.income].sort((a,b)=>a.year-b.year);
+    const yearly = getYearlyTotals();
     if (incChart) incChart.destroy();
     incChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: sorted.map(i=>i.year+'年'),
+            labels: yearly.map(i=>i.year+'年'),
             datasets: [{
                 label: '年收入',
-                data: sorted.map(i=>i.amount),
-                backgroundColor: sorted.map(i =>
+                data: yearly.map(i=>i.amount),
+                backgroundColor: yearly.map(i =>
                     i.year === new Date().getFullYear()
                         ? 'rgba(79,142,247,0.9)'
                         : 'rgba(79,142,247,0.5)'
@@ -641,12 +657,12 @@ function renderIncomeChart() {
                 legend: { display: false },
                 title: {
                     display: true,
-                    text: '每年收入統計',
+                    text: '每年收入統計（月收入自動加總）',
                     font: { size: 15, weight: 'bold' },
                     color: '#1a2236',
                     padding: { bottom: 16 }
                 },
-                tooltip: { callbacks: { label: c => fmtFull(c.raw) } }
+                tooltip: { callbacks: { label: c => fmt(c.raw) } }
             },
             scales: {
                 y: { beginAtZero: true, ticks: { callback: v => fmt(v) } }
@@ -722,7 +738,7 @@ function renderLife() {
             <div class="life-info">
                 <div class="life-title ${g.done?'done':''}">${g.title}</div>
                 ${g.desc   ? `<div class="life-desc">${g.desc}</div>` : ''}
-                ${g.amount ? `<div class="life-amount">目標金額：${fmtFull(g.amount)}</div>` : ''}
+                ${g.amount ? `<div class="life-amount">目標金額：${fmt(g.amount)}</div>` : ''}
                 <div style="margin-top:6px;display:flex;gap:8px;align-items:center">
                     <span class="badge ${g.done?'badge-done':'badge-pending'}">${g.done?'✓ 已完成':'待完成'}</span>
                     <span style="font-size:11px;color:var(--text-secondary)">${cat.label} · ${g.createdAt}</span>
@@ -843,8 +859,9 @@ renderIncomeTable();
 renderLife();
 renderYearTabs();
 renderTasks();
-document.getElementById('tk-year').value   = new Date().getFullYear();
-document.getElementById('ic-year').value   = new Date().getFullYear();
+document.getElementById('tk-year').value    = new Date().getFullYear();
+document.getElementById('ic-year').value    = new Date().getFullYear();
+document.getElementById('ic-month').value   = new Date().getMonth() + 1;
 </script>
 </body>
 </html>
