@@ -1,0 +1,20 @@
+{
+  "name": "人生財務規劃系統",
+  "short_name": "財務規劃",
+  "description": "追蹤退休目標、收支記錄、資產管理、人生規劃與任務清單",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1e2d4d",
+  "theme_color": "#1e2d4d",
+  "orientation": "any",
+  "lang": "zh-TW",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
